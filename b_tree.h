@@ -13,7 +13,7 @@ private:
         bool is_leaf;
 
         B_node ();
-        //~B_node ();
+        void destroy_subtree ();
         //! Inserts value to a tree if it is not full. The node corresponding to this index must be full when this function is called.
         void insert (const T& value);
         //! Splits index_node of this node. The node corresponding to this index must be full when this function is called.
@@ -30,7 +30,7 @@ private:
     B_node* root;
 public:
     explicit B_tree ();
-    //~B_tree ();
+    ~B_tree ();
 
     //!==========================|
     //! Inserts element to a tree
