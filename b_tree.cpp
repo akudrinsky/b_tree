@@ -170,6 +170,22 @@ void B_tree<T, min_degree, compare>::print () {
 }
 
 template<typename T, const int min_degree, class compare>
+B_tree<T, min_degree, compare>::~B_tree () {
+    root->destroy_subtree ();
+}
+
+template<typename T, const int min_degree, class compare>
+void B_tree<T, min_degree, compare>::B_node::destroy_subtree () {
+    if (!is_leaf) {
+        for (int i = 0; i <= size; ++i) {
+            children[i]->destroy_subtree ();
+        }
+    }
+    delete[] children;
+    delete[] keys;
+}
+
+template<typename T, const int min_degree, class compare>
 void B_tree<T, min_degree, compare>::B_node::print (const std::string& id) {
     std::cout << "<---------------------------->\nVertice id: " << id << (is_leaf ? " - leaf" : " - not a leaf") << "\nKeys are: \n";
     for (int i = 0; i < size; ++i) {
