@@ -1,63 +1,59 @@
 #include <iostream>
 #include <vector>
 #include "b_tree.h"
-void test ();
+
+#include "danya.cpp"
+
+#define i(data) tree.insert(data);
+#define r(data) tree.remove(data);
+#define p tree.print();
+
+void test_mine ();
+void compare ();
+void answer ();
 
 int main () {
-    test ();
-
-    /*
-    int n_requests = 0;
-    B_tree<int, 10> tree;
-    std::cin >> n_requests;
-    int id = 0;
-    std::string command;
-
-    bool was_question = false;
-    int saved_result = 0;
-
-    for (int i = 0; i < n_requests; ++i) {
-        std::cin >> command >> id;
-        if (command[0] == '+') {
-            if (was_question) {
-                id = (id + saved_result) % 1000000000;
-            }
-            tree.insert (id);
-            was_question = false;
-        }
-        else if (command[0] == '?') {
-            was_question = true;
-            std::pair<bool, int> answer= tree.next (id);
-            if (answer.first) {
-                printf ("%d\n", answer.second);
-                saved_result = answer.second;
-            }
-            else {
-                printf ("-1\n");
-                saved_result = -1;
-            }
-        }
-        else {
-            printf ("command = %c\n", command[0]);
-        }
-    }*/
+    test_mine ();
+    //compare ();
 }
 
-void test () {
+void test_mine () {
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);
+
     B_tree<int, 2> tree;
-    tree.insert (12);
-    tree.insert (3);
-    tree.insert (5);
-    tree.insert (6);
-    tree.insert (1);
-    tree.insert (44);
-    tree.insert (1324);
-    tree.insert (4);
-    tree.insert (66);
+    int n_requests = 0;
+    unsigned long long last_sum = -1;
+    char command[2] = {};
+    int value = 0, arg = 0;
+    std::cin >> n_requests;
 
-    tree.print ();
+    for (int i = 0; i < n_requests; ++i) {
+        std::cin >> command;
+        if (command[0] == '+') {
+            std::cin >> value;
+            if (last_sum != -1) {
+                tree.insert ((value + last_sum) % 1000000000);
+                last_sum;
+                last_sum = -1;
+            }
+            else {
+                tree.insert (value);
+                last_sum = -1;
+            }
+        }
+        else if (command[0] == '?') {
+            std::cin >> value >> arg;
+            last_sum = tree.sum_range (value, arg);
+            printf ("%lld\n", last_sum);
+        }
+        else {
+            printf ("abort....\n");
+            abort ();
+        }
 
-    std::cout << tree.next (200).second;
+        p
+    }
 }
 
 /*
@@ -65,8 +61,8 @@ void test () {
 + 1
 + 3
 + 3
-? 2
+? 2 4
 + 1
-? 4
+? 2 4
 
  */
