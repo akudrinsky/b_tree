@@ -10,7 +10,7 @@ B_tree<T, min_degree, compare>::B_tree () {
 template<typename T, const int min_degree, class compare>
 B_tree<T, min_degree, compare>::B_node::B_node () {
     size = 0;
-    sum = 0;
+    tree_size = 0;
     keys = new T[2 * min_degree - 1];
     children = new B_node*[2 * min_degree];
     is_leaf = true;
@@ -19,40 +19,30 @@ B_tree<T, min_degree, compare>::B_node::B_node () {
 template<typename T, const int min_degree, class compare>
 bool B_tree<T, min_degree, compare>::B_node::is_in (const T& value) {
     compare less;
-
-    int index = 0;
-    while (index < size and less (keys[index], value))
-        ++index;
-
-    if (!less (keys[index], value) and !less (value, keys[index]))
-        return true;
-
-    if (is_leaf)
-        return false;
-
-    return children[index]->is_in (value);
+    for (int i = 0; i < size; ++i) {
+        if (!less (keys[size], value) and !less (value, keys[size])) {
+            return true;
+        }
+    }
+    return false;
 }
 
 template<typename T, const int min_degree, class compare>
 void B_tree<T, min_degree, compare>::insert (const T& value) {
     compare less;
 
-    if (root->is_in (value)) {
-        return;
-    }
-
     if (root == nullptr) {
         root = new B_node;
         root->keys[0] = value;
         root->size = 1;
-        root->sum += value;
+        root->tree_size = 1;
     }
     else {
         if (root->is_full ()) {
             B_node* new_root = new B_node;
             new_root->is_leaf = false;
             new_root->children[0] = root;
-            new_root->sum = root->sum + value;
+            new_root->tree_size = root->tree_size + 1;
             new_root->split_child (0);
 
             int index = 0;
@@ -71,7 +61,7 @@ void B_tree<T, min_degree, compare>::insert (const T& value) {
 
 template<typename T, const int min_degree, class compare>
 void B_tree<T, min_degree, compare>::B_node::insert (const T& value) {
-    sum += value;
+    ++tree_size;
     compare less;
 
     int index = size - 1;
@@ -106,24 +96,21 @@ void B_tree<T, min_degree, compare>::B_node::insert (const T& value) {
 template<typename T, const int min_degree, class compare>
 void B_tree<T, min_degree, compare>::B_node::split_child (int index) {
     B_node* to_split = children[index];
+    to_split->tree_size = min_degree - 1;
     B_node* node_new = new B_node;
     node_new->is_leaf = to_split->is_leaf;
 
     node_new->size = min_degree - 1;
-    node_new->sum = 0;
+    node_new->tree_size = min_degree - 1;
     for (int i = 0; i < min_degree - 1; ++i) {
         node_new->keys[i] = to_split->keys[min_degree + i];
-
-        node_new->sum += to_split->keys[min_degree + i];
-        to_split->sum -= to_split->keys[min_degree + i];
     }
 
     if (!to_split->is_leaf) {
         for (int i = 0; i < min_degree; ++i) {
             node_new->children[i] = to_split->children[min_degree + i];
-
-            node_new->sum += to_split->children[min_degree + i]->sum;
-            to_split->sum -= to_split->children[min_degree + i]->sum;
+            node_new->tree_size += to_split->children[min_degree + i]->tree_size;
+            to_split->tree_size += to_split->children[i]->tree_size;
         }
     }
 
@@ -140,7 +127,6 @@ void B_tree<T, min_degree, compare>::B_node::split_child (int index) {
     }
 
     keys[index] = to_split->keys[min_degree - 1];
-    to_split->sum -= to_split->keys[min_degree - 1];
 
     ++size;
 }
@@ -202,7 +188,7 @@ void B_tree<T, min_degree, compare>::B_node::destroy_subtree () {
 
 template<typename T, const int min_degree, class compare>
 void B_tree<T, min_degree, compare>::B_node::print (const std::string& id) {
-    std::cout << "<---------------------------->\nVertice id: " << id << (is_leaf ? " - leaf" : " - not a leaf") << "\tsum: " << sum << "\nKeys are: \n";
+    std::cout << "<---------------------------->\nVertice id: " << id << (is_leaf ? " - leaf" : " - not a leaf") << "\ttree size: " << tree_size << "\nKeys are: \n";
     for (int i = 0; i < size; ++i) {
         std::cout << i << ": " << keys[i] << '\n';
     }
@@ -237,7 +223,7 @@ bool B_tree<T, min_degree, compare>::remove (const T& value) {
 
 template<typename T, const int min_degree, class compare>
 bool B_tree<T, min_degree, compare>::B_node::remove (const T& value) {
-    sum -= value;
+    --tree_size;
     compare less;
 
     int idx = find_not_less_index (value);
@@ -256,7 +242,7 @@ bool B_tree<T, min_degree, compare>::B_node::remove (const T& value) {
             return false;
         }
 
-        bool last_merged = (idx == size);
+        bool last_merged = idx == size;
         if (children[idx]->size < min_degree) {
             fill_thin (idx);
             //last_merged = fill_thin (idx);
@@ -286,18 +272,17 @@ int B_tree<T, min_degree, compare>::B_node::find_not_less_index (const T& value)
 
 template<typename T, const int min_degree, class compare>
 void B_tree<T, min_degree, compare>::B_node::remove_leaf (int idx) {
-    //sum -= keys[idx];
-
     for (int i = idx + 1; i < size; ++i) {
         keys[i - 1] = keys[i];
     }
     --size;
-
+    //--tree_size;
     debug ("remove_leaf\n")
 }
 
 template<typename T, const int min_degree, class compare>
 void B_tree<T, min_degree, compare>::B_node::remove_non_leaf (int idx) {
+    //--tree_size;
     T value = keys[idx];
     if (children[idx]->size >= min_degree) {
         T pred = get_pred (idx);
@@ -340,7 +325,7 @@ template<typename T, const int min_degree, class compare>
 void B_tree<T, min_degree, compare>::B_node::merge (int idx) {
     B_node* child = children[idx];
     B_node* sibling = children[idx + 1];
-    child->sum += sibling->sum + keys[idx];
+    child->tree_size += sibling->tree_size + 1;
 
     child->keys[min_degree - 1] = keys[idx];
 
@@ -406,21 +391,19 @@ void B_tree<T, min_degree, compare>::B_node::borrow_prev (int idx) {
     }
 
     child->keys[0] = keys[idx - 1];
-    child->sum += keys[idx - 1];
-    sum -= keys[idx - 1];
 
     if (!child->is_leaf) {
-        child->sum += sibling->children[sibling->size]->sum;
-        sibling->sum -= sibling->children[sibling->size]->sum;
+        child->tree_size += sibling->children[sibling->size]->tree_size;
+        sibling->tree_size -= sibling->children[sibling->size]->tree_size;
         child->children[0] = sibling->children[sibling->size];
     }
 
     keys[idx - 1] = sibling->keys[sibling->size - 1];
-    sibling->sum -= sibling->keys[sibling->size - 1];
-    sum += keys[idx - 1];
 
     child->size++;
+    child->tree_size++;
     sibling->size--;
+    sibling->tree_size--;
     debug ("borrow_prev\n")
 }
 
@@ -430,18 +413,14 @@ void B_tree<T, min_degree, compare>::B_node::borrow_next (int idx) {
     B_node* sibling = children[idx + 1];
 
     child->keys[child->size] = keys[idx];
-    child->sum += keys[idx];
-    sum -= keys[idx];
 
     if (!child->is_leaf) {
-        child->sum += sibling->children[0]->sum;
-        sibling->sum -= sibling->children[0]->sum;
+        child->tree_size += sibling->children[0]->tree_size;
+        sibling->tree_size -= sibling->children[0]->tree_size;
         child->children[child->size + 1] = sibling->children[0];
     }
 
     keys[idx] = sibling->keys[0];
-    sum += sibling->keys[0];
-    sibling->sum -= sibling->keys[0];
 
     for (int i = 1; i < sibling->size; ++i) {
         sibling->keys[i - 1] = sibling->keys[i];
@@ -454,69 +433,34 @@ void B_tree<T, min_degree, compare>::B_node::borrow_next (int idx) {
     }
 
     child->size++;
+    child->tree_size++;
     sibling->size--;
+    sibling->tree_size--;
 
     debug ("borrow_next\n")
 }
 
 template<typename T, const int min_degree, class compare>
-unsigned long long B_tree<T, min_degree, compare>::sum_range (const T& l_bound, const T& r_bound) {
-    if (root == nullptr) {
-        return 0;
-    }
-
-    return root->sum_range (l_bound, r_bound);
+T& B_tree<T, min_degree, compare>::kth_maximum (int k) {
+    return root->kth_max (k);
 }
 
 template<typename T, const int min_degree, class compare>
-bool B_tree<T, min_degree, compare>::B_node::within (int index, const T& l_bound, const T& r_bound) {
-    compare less;
-    return (!less (keys[index], l_bound)) and (!less (r_bound, keys[index]));
-}
-
-template<typename T, const int min_degree, class compare>
-unsigned long long B_tree<T, min_degree, compare>::B_node::sum_range (const T& l_bound, const T& r_bound) {
-    unsigned long long result_sum = 0;
-    compare less;
-    printf ("rec\n");
-
-    int index = 0;
-    while (index < size and less (keys[index], l_bound)) {
-        ++index;
-    }
-
+T& B_tree<T, min_degree, compare>::B_node::kth_max (int k) {
     if (is_leaf) {
-        while (index < size and less (keys[index], r_bound)) {
-            result_sum += keys[index];
-            ++index;
-            printf ("result (1) is %d\n\n", result_sum);
-        }
-        //printf ("result (1) is %d\n\n", result_sum);
+        return keys[size - k];
     }
     else {
-        result_sum += children[index]->sum_range (l_bound, r_bound);
-        if (!less (r_bound, keys[index])) {
-            result_sum += keys[index];
+        int idx = size;
+        while (children[idx]->tree_size < k) {
+            k -= children[idx]->tree_size + 1;
+            --idx;
         }
-
-        if (index == size or less (r_bound, keys[index])) {
-            return result_sum;
+        if (k == 0) {
+            return keys[idx];
         }
-
-        ++index;
-        //printf ("result (2) is %d\n", result_sum);
-        while (index < size and !less (r_bound, keys[index])) {
-            result_sum += keys[index];
-            result_sum += children[index]->sum;
-            ++index;
-            printf ("result (2) is %d\n\n", result_sum);
-        }
-        //printf ("result (3) is %d\n", result_sum);
-        result_sum += children[index]->sum_range (l_bound, r_bound);
-        //printf ("result (4) is %d\n\n", result_sum);
+        return children[idx]->kth_max (k);
     }
-
-    return result_sum;
 }
 
 #endif
