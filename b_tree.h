@@ -1,13 +1,7 @@
 #ifndef B_TREE_H
 #define B_TREE_H
 
-#ifdef DEBUG
-#define debug(text)\
-printf (text);\
-tree.print ();
-#else
 #define debug(text) ;
-#endif
 
 #include <iostream>
 #include <string>
@@ -21,22 +15,22 @@ private:
         T* keys;
         B_node** children;
         bool is_leaf;
-        long long sum;
+        int tree_size;
 
         B_node ();
         //! frees memory of a vertice and its children
         void destroy_subtree ();
-        //! inserts value to a tree if it is not full. The node corresponding to this index must be full when this function is called.
+        //! Inserts value to a tree if it is not full. The node corresponding to this index must be full when this function is called.
         void insert (const T& value);
-        //! splits index_node of this node. The node corresponding to this index must be full when this function is called.
+        //! Splits index_node of this node. The node corresponding to this index must be full when this function is called.
         void split_child (int index);
-        //! if the given node is full
+        //! If the given node is full
         bool is_full ();
-        //! checks if a given value is in a subtree of a given node
+        //! Checks if a given value is in node
         bool is_in (const T& value);
-        //! gets next element (recursive for "next" in tree)
+        //! Gets next element (recursive for "next" in tree)
         std::pair<bool, T> next (const T& value);
-        //! prints node in print of tree function
+        //! Prints node in print of tree function
         void print (const std::string& identifier);
         //! removes value from a tree
         bool remove (const T& value);
@@ -58,10 +52,8 @@ private:
         void borrow_prev (int idx);
         //! borrows key from children[idx + 1] and inserts it to children[idx]
         void borrow_next (int idx);
-		//! gets sum of element in a subtree that are within [l_bound, r_bound]
-        unsigned long long sum_range (const T& l_bound, const T& r_bound);
-		//! if key[index] is in range from l_bound to r_bound
-		bool within (int index, const T& l_bound, const T& r_bound);
+        //! returns k-th maximum in a tree
+        T& kth_max (int k);
     };
     B_node* root;
 public:
@@ -71,7 +63,7 @@ public:
     //!==========================|
     //! Inserts element to a tree
     //!==========================|
-    void insert (const T& value);
+    virtual void insert (const T& value);
 
     //!==========================|
     //! Prints tree
@@ -84,12 +76,14 @@ public:
     //!=====================================================================|
     bool remove (const T& value);
 
-    //!================================================|
-    //! Gets sum of elements in range l_bound, r_bound
-    //!================================================|
-    unsigned long long sum_range (const T& l_bound, const T& r_bound);
-};
+    //!=====================================================================|
+    //! Returns element which is k-th maximum in our tree
+    //!=====================================================================|
+    T& kth_maximum (int k);
 
+    template <const int>
+    friend struct B_company;
+};
 #include "b_tree.cpp"
 
 #endif
